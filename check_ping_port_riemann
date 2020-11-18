@@ -8,7 +8,7 @@
 
 LIST=`cat <<EOF
 CHECK-TYPE              NAME                                    IPADDRESS                               PORT-CHECK
-3                       hostname		                6.6.6.6                          	443
+2                       hostname		                6.6.6.6                          	443
 EOF
 `
 #============================================================================================
