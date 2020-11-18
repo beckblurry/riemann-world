@@ -1,0 +1,100 @@
+#!/bin/bash
+# example : ./check_ping_port_riemann -H riemann-server -p riemann-port -i 1 -l 10 -t extcheck
+#============================================================================================
+# category check list :
+# 1 for check ping only
+# 2 for check port only
+# 3 for check ping and port
+
+LIST=`cat <<EOF
+CHECK-TYPE              NAME                                    IPADDRESS                               PORT-CHECK
+3                       hostname		                6.6.6.6                          	443
+EOF
+`
+#============================================================================================
+
+
+TEMP_FILE="/tmp/check_ping_port.$RANDOM.log"
+
+## Help funcion
+help() {
+cat << END
+Usage :
+        ./check_ping_port -H [STRING] -p [VALUE]
+
+        OPTION          DESCRIPTION
+        ----------------------------------
+        -h              Help
+        -H [STRING]     Riemann Server
+        -p [VALUE]      Riemann Port
+        -i [VALUE]      Interval
+        -l [VALUE]      TTL
+        -t [VALUE]      Tag
+        ----------------------------------
+Note : [VALUE and PORT] must be an integer.
+END
+}
+
+if [ $# -ne 10 ]
+then
+    help;
+    exit 3;
+fi
+
+while getopts "H:p:i:l:t:" OPT
+do
+    case $OPT in
+    H) RIEMANN="$OPTARG" ;;
+    p) RIEMANNPORT="$OPTARG" ;;
+    i) INTERVAL="$OPTARG" ;;
+    l) TTL="$OPTARG" ;;
+    t) TAG="$OPTARG" ;;
+    *) help ;;
+    esac
+done
+
+#check portcheck if exists
+CHECKPRUN=`ps ax | grep portcheck | awk '{print $1}' | head -1`
+if [[  ! -z $CHECKPRUN  ]]; then
+    for id in `ps ax | grep portcheck | awk '{print $1}'`; do kill -9 $id; done &>/dev/null
+fi
+
+echo "${LIST}" | grep -v NAME  > $TEMP_FILE
+EQP_FS="`cat $TEMP_FILE | wc -l`"
+FILE=$TEMP_FILE
+exec 3<&0
+exec 0<"$FILE"
+
+  while read LINE; do
+    j=$((j+1))
+        NAME[$j]=`echo $LINE | awk '{print $2}'`
+        HOST[$j]=`echo $LINE | awk '{print $3}'`
+        ALLPORT[$j]=`echo $LINE | awk '{print $4}' | sed 's/,/ /g'`
+        TYPECHECKS[$j]=`echo $LINE | awk '{print $1}'`
+
+        case ${TYPECHECKS[$j]} in
+          1) #check ping only
+                echo "riemann-portcheck -h $RIEMANN -p $RIEMANNPORT -s 1 -t $TAG -i $INTERVAL -l $TTL -e ${NAME[$j]} -o ${HOST[$j]} &" | bash
+            ;;
+
+          2) #check port only
+                for PORT in ${ALLPORT[$j]}
+                do
+                    echo "riemann-portcheck -h $RIEMANN -p $RIEMANNPORT -s 2 -t $TAG -i $INTERVAL -l $TTL -e ${NAME[$j]} -o ${HOST[$j]} -r $PORT &" | bash
+                done
+            ;;
+
+          3) #check ping and port
+                for PORT in ${ALLPORT[$j]}
+                do
+                    echo "riemann-portcheck -h $RIEMANN -p $RIEMANNPORT -s 3 -t $TAG -i $INTERVAL -l $TTL -e ${NAME[$j]} -o ${HOST[$j]} -r $PORT &" | bash
+                done
+            ;;
+
+        esac
+
+  done
+exec 3<&0
+
+rm -rf $TEMP_FILE
+
