@@ -1,0 +1,19 @@
+{
+  "ignition": {
+    "version": "3.0.0"
+  },
+  "passwd": {
+    "users": [
+      {
+        "groups": [
+          "sudo"
+          ],
+        "name": "admin",
+        "passwordHash": "$y$j9T$n6h8P2ik8tfoNUFBBoly00$7bnrMF8oFrB25Fc3NqigqEH/MI5YXIJwtCG/iEsns.2",
+        "sshAuthorizedKeys": [
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOQkjdrLT7Dwy8EA+KSv/XVhQso2X2JzzzcOCBwMYDO5"
+        ]
+      }
+    ]
+  }
+}
